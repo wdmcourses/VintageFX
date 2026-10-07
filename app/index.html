@@ -826,10 +826,15 @@ function applyPresetXml(text) {
   const comp = compEl ? compEl.textContent.trim() : "off";
   const nn = doc.querySelector("no_noise");
 
-  S.epochs = new Set(readIds("epochs", "epochs"));
-  S.devices = new Set(readIds("devices", "devices"));
-  S.spaces = new Set(readIds("spaces", "spaces"));
-  S.variants = new Set(variants);
+  // Refill the existing Sets in place. The card click handlers bound in
+  // bindCards() close over these very objects, so replacing them here would
+  // leave every card wired to a detached Set: after loading a preset the
+  // clicks would be ignored and only the XML contents would play.
+  const refill = (set, ids) => { set.clear(); ids.forEach(id => set.add(id)); };
+  refill(S.epochs, readIds("epochs", "epochs"));
+  refill(S.devices, readIds("devices", "devices"));
+  refill(S.spaces, readIds("spaces", "spaces"));
+  refill(S.variants, variants);
   S.strength = num("strength", 100, 0, 100);
   S.spacesStrength = num("spaces_strength", 100, 0, 100);
   S.brickHz = num("brick_hz", 90, 20, 2000);

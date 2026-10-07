@@ -415,6 +415,28 @@ async function main() {
     check(roundTrip.xmlHead.startsWith("<?xml") && roundTrip.wiped && roundTrip.ok,
           `Save/Open round-trips every setting through XML (${JSON.stringify(roundTrip)})`);
 
+    const presetClick = JSON.parse(await evaluate(cdp, `(() => {
+      renderEpochs();
+      applyPresetXml('<?xml version="1.0" encoding="UTF-8"?><vintagefx version="1"><epochs><id>cylinder</id></epochs></vintagefx>');
+      const loaded = [...S.epochs].join(",");
+      const card = [...document.querySelectorAll("#epochCards .card")].find(c => c.dataset.id !== "cylinder");
+      const cname = card.querySelector(".cn").textContent;
+      card.click();
+      return JSON.stringify({
+        loaded,
+        clicked: card.dataset.id,
+        name: cname,
+        state: [...S.epochs].sort().join(","),
+        onCards: [...document.querySelectorAll("#epochCards .card.on")].map(c => c.dataset.id).sort().join(","),
+        chain: document.getElementById("chain").textContent,
+      });
+    })()`));
+    check(presetClick.loaded === "cylinder"
+          && presetClick.state.split(",").includes(presetClick.clicked)
+          && presetClick.onCards.split(",").includes(presetClick.clicked)
+          && presetClick.chain.includes(presetClick.name),
+          `cards stay live after loading a preset (${JSON.stringify(presetClick)})`);
+
     await cdp.send("Page.reload");
     await wait(cdp, "document.querySelectorAll('#epochCards .card').length === 20");
     await sleep(400);
