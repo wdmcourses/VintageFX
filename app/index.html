@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VintageFX — era effects</title>
+<style>
+:root{
+  --bg:#0f1115; --bg2:#15181e; --card:#1a1e26; --card2:#20252e;
+  --line:#272d38; --tx:#e6e9ef; --tx2:#98a1b0; --tx3:#6c7686;
+  --acc:#e0a458; --acc2:#f0c288; --ok:#5fbf8a; --err:#e07070;
+  --r:9px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--tx);
+  font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+::selection{background:var(--acc);color:#111}
+
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:2px 2px 0}
+.brand h1{
+  margin:0;font-size:22px;font-weight:800;letter-spacing:.4px;color:var(--acc);
+}
+.brand .status{margin:0;text-align:right;flex:1 1 auto;min-width:0}
+
+.drop{
+  display:flex;align-items:center;gap:10px;width:100%;
+  min-height:44px;padding:7px 8px 7px 13px;
+  background:var(--card);border:1px dashed #39414f;border-radius:var(--r);
+  color:var(--tx2);font-size:12.5px;transition:.15s;cursor:pointer;
+}
+.drop.hot{border-color:var(--acc);background:#1e2430;color:var(--acc2)}
+.drop .ico{font-size:15px;flex:none}
+.drop .name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drop .name.loaded{color:var(--tx);font-weight:600}
+.drop .meta{color:var(--tx3);font-size:11px;white-space:nowrap}
+.drop .btn-ghost{margin-left:auto;flex:none}
+
+.srcbox{
+  display:flex;flex-direction:column;gap:7px;
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 10px;
+}
+.srcbox audio{width:100%;height:32px;border-radius:7px}
+
+.grid{display:grid;grid-template-columns:1fr 378px;gap:14px;padding:14px 16px 40px}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sticky{position:sticky;top:14px}
+
+.sec{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+.sec h2{
+  margin:0 0 4px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--acc);display:flex;align-items:center;gap:8px;font-weight:700;
+}
+.sec h2 .num{
+  display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;
+  background:var(--acc);color:#15181e;font-size:11px;font-weight:800;
+}
+.sec h2 em{font-style:normal;color:var(--tx3);font-weight:400;letter-spacing:0;text-transform:none;font-size:11.5px}
+.h2btns{margin-left:auto;display:flex;gap:5px}
+.btn-mini{
+  background:var(--card2);border:1px solid var(--line);border-radius:6px;
+  padding:3px 9px;font-size:10.5px;font-weight:600;letter-spacing:0;
+  text-transform:none;color:var(--tx2);transition:.12s;
+}
+.btn-mini:hover{border-color:var(--acc);color:var(--acc2)}
+.sec h3{margin:15px 0 4px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.hint{margin:5px 0 0;font-size:11.5px;color:var(--tx3);line-height:1.4}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:7px}
+.card{
+  display:flex;gap:8px;align-items:flex-start;text-align:left;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 9px;transition:.13s;position:relative;overflow:hidden;
+}
+.card:hover{background:var(--card2);border-color:#333b48}
+.card.on{background:#2a2317;border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.card.on::after{content:"✓";position:absolute;top:5px;right:7px;color:var(--acc);font-size:11px;font-weight:700}
+.card .ce{font-size:16px;line-height:1.2;flex:none}
+.card .cn{font-size:12.5px;font-weight:600;line-height:1.25}
+.card .cd{
+  display:block;font-size:10.5px;color:var(--tx3);line-height:1.35;margin-top:2px;
+  max-height:28px;overflow:hidden;
+}
+
+.optrow{display:flex;gap:5px;margin-top:2px;align-items:center}
+.opt{
+  flex:1 1 0;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:7px;
+  padding:5px 5px;font-size:11.5px;line-height:1.2;text-align:center;color:var(--tx2);transition:.12s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.opt:hover{border-color:#3c4452;color:var(--tx)}
+.opt.on{background:#2a2317;border-color:var(--acc);color:var(--acc2);font-weight:600}
+.opt-num{font-family:inherit;text-align:center;color:var(--acc2);font-weight:600;-moz-appearance:textfield}
+.opt-num::-webkit-outer-spin-button,
+.opt-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.tonebox{
+  flex:2 1 0;min-width:0;display:flex;gap:3px;padding:3px;
+  border-radius:8px;box-shadow:inset 0 0 0 1px var(--line);
+}
+.tonebox .opt{flex:1 1 0}
+
+.srow{display:flex;align-items:baseline;justify-content:space-between;margin:9px 0 3px}
+.srow label{font-size:12.5px;color:var(--tx2)}
+.srow output{font-size:15px;font-weight:700;color:var(--acc2);font-variant-numeric:tabular-nums}
+input[type=range]{
+  width:100%;-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;
+  background:linear-gradient(90deg,var(--acc) var(--p,50%),#2a303b var(--p,50%));outline:none;margin:4px 0 8px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--acc2);border:2px solid #15181e;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--acc2);border:2px solid #15181e;cursor:pointer}
+.qbtns{display:flex;gap:5px;flex-wrap:wrap}
+.qbtns.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;flex-wrap:nowrap}
+.qbtns.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;flex-wrap:nowrap}
+.qbtn{
+  background:var(--card);border:1px solid var(--line);border-radius:7px;
+  padding:5px 5px;font-size:11.5px;color:var(--tx2);transition:.12s;text-align:center;line-height:1.2;
+}
+.qbtn .qi{font-size:13px;margin-right:4px}
+.qbtn:hover{background:var(--card2);border-color:#3c4452;color:var(--tx)}
+.qbtn.on{background:#2a2317;border-color:var(--acc);color:var(--acc2);font-weight:600}
+.check{
+  display:flex;align-items:flex-start;gap:9px;margin-top:14px;padding:9px 10px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;
+}
+.check:hover{background:var(--card2)}
+.check input{margin:2px 0 0;accent-color:var(--acc);width:15px;height:15px;flex:none}
+.check span{font-size:12.5px;font-weight:600}
+.check small{display:block;font-weight:400;font-size:11px;color:var(--tx3);margin-top:2px;line-height:1.35}
+
+.btn-primary{
+  width:100%;margin-top:12px;padding:9px;border:none;border-radius:var(--r);
+  background:linear-gradient(180deg,var(--acc2),var(--acc));color:#15181e;
+  font-weight:800;font-size:13.5px;letter-spacing:.3px;transition:.13s;
+}
+.btn-primary:hover{filter:brightness(1.07)}
+.btn-primary:disabled{opacity:.5;cursor:wait}
+.btn-ghost{
+  background:var(--card2);border:1px solid var(--line);border-radius:7px;
+  padding:6px 11px;font-size:12px;color:var(--tx2);text-decoration:none;display:inline-block;transition:.12s;
+}
+.btn-ghost:hover{border-color:var(--acc);color:var(--acc2)}
+
+.chain{display:flex;flex-wrap:wrap;gap:4px;margin-top:11px}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#232936;border:1px solid var(--line);border-radius:5px;
+  padding:3px 4px 3px 7px;font-size:10.5px;color:var(--tx2);
+}
+.chip-x{
+  display:grid;place-items:center;width:13px;height:13px;padding:0;border:none;border-radius:50%;
+  background:#3a4250;color:#cbd2dd;font-size:10px;line-height:1;cursor:pointer;flex:none;
+}
+.chip-x:hover{background:var(--err);color:#fff}
+.chip.sep{background:none;border:none;color:var(--tx3);padding:3px 0}
+.chip.cmp{border-color:#4a3a1d;background:#241d12;color:var(--acc2)}
+.result{margin-top:8px}
+.result audio{width:100%;height:34px;border-radius:7px;background:var(--card)}
+.resline{display:flex;gap:7px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.resline .fmt{font-size:11px;color:var(--tx3)}
+.status{font-size:12px;margin-top:9px;min-height:16px}
+.status.err{color:var(--err)}
+.status.ok{color:var(--ok)}
+.status.work{color:var(--acc2)}
+
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #4a4030;border-top-color:var(--acc2);
+  border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<main class="grid">
+  <div class="col">
+
+    <div class="brand">
+      <h1>VintageFX</h1>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="srcbox" id="srcBox">
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload audio">
+        <span class="ico">⬆</span>
+        <span class="name" id="dropTxt">Drop an audio file here</span>
+        <span class="meta" id="srcMeta"></span>
+        <button class="btn-ghost" id="pick" type="button" title="Choose an audio file">Browse…</button>
+        <input type="file" id="file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.opus" hidden>
+      </div>
+      <div id="srcTrack" hidden>
+        <audio id="srcPlayer" controls preload="none"></audio>
+      </div>
+    </div>
+
+    <section class="sec">
+      <h2><span class="num">1</span>Era <em>pick several — they chain into one file</em></h2>
+      <div class="cards" id="epochCards"></div>
+    </section>
+
+    <section class="sec">
+      <h2><span class="num">2</span>Device <em>microphone, amplifier, speaker, line</em></h2>
+      <div class="cards" id="deviceCards"></div>
+    </section>
+
+    <section class="sec">
+      <h2><span class="num">3</span>Rooms &amp; spaces <em>multi-select: rooms, reverb, acoustics</em></h2>
+      <div class="cards" id="spaceCards"></div>
+    </section>
+
+  </div>
+
+  <div class="col">
+    <section class="sec sticky">
+      <h2><span class="num">4</span>Effect settings
+        <span class="h2btns">
+          <button class="btn-mini" id="presetOpen" type="button" title="Open a settings preset from an XML file">Open</button>
+          <button class="btn-mini" id="presetSave" type="button" title="Save all settings to an XML file">Save</button>
+        </span>
+      </h2>
+      <input type="file" id="presetFile" accept=".xml,application/xml,text/xml" hidden>
+
+      <div class="srow">
+        <label for="strength">Effect strength</label>
+        <output id="strengthVal">100%</output>
+      </div>
+      <input type="range" id="strength" min="0" max="100" step="5" value="100" title="Effect strength">
+      <div class="qbtns grid5" id="strengthQuick"></div>
+
+      <div id="spacesCtl" hidden>
+        <div class="srow">
+          <label for="spacesStrength">Rooms &amp; spaces strength</label>
+          <output id="spacesVal">100%</output>
+        </div>
+        <input type="range" id="spacesStrength" min="0" max="100" step="5" value="100" title="Rooms &amp; spaces strength">
+        <div class="qbtns grid5" id="spacesQuick"></div>
+      </div>
+
+      <h3>Character</h3>
+      <div class="optrow" id="toggles"></div>
+
+      <h3>Compression</h3>
+      <div class="qbtns grid3" id="compBtns"></div>
+      <p class="hint" id="compHint"></p>
+
+      <label class="check" for="noNoise">
+        <input type="checkbox" id="noNoise" title="Mute hiss, clicks, hum and vinyl crackle">
+        <span>Remove background noise
+          <small>Mutes hiss, clicks, hum and vinyl crackle.</small>
+        </span>
+      </label>
+
+      <div class="srow">
+        <label for="volume">Output volume</label>
+        <output id="volumeVal">100%</output>
+      </div>
+      <input type="range" id="volume" min="0" max="200" step="5" value="100" title="Output volume - 100% leaves the level unchanged">
+
+      <button class="btn-primary" id="go" type="button" title="Process the track with the selected effects">✨ Apply</button>
+
+      <div class="chain" id="chain"></div>
+
+      <h3>Result</h3>
+      <div class="result">
+        <audio id="player" controls preload="none"></audio>
+        <div class="resline">
+          <a class="btn-ghost" id="dl" href="#" hidden title="Download the processed file">⬇ Download</a>
+          <span class="fmt" id="resMeta"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+const S = {
+  epochs: new Set(),
+  devices: new Set(),
+  spaces: new Set(),
+  variants: new Set(),
+  strength: 100,
+  spacesStrength: 100,
+  brickHz: 90,
+  compression: "off",
+  noNoise: false,
+  volume: 100,
+  uid: null,
+  origUrl: null,
+  track: null,
+  busy: false,
+  data: null
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let booted = false;
+
+function status(text, cls) {
+  const el = $("status");
+  el.className = "status " + (cls || "");
+  el.innerHTML = text || "";
+}
+
+async function loadPresets() {
+  const r = await fetch("/api/presets");
+  if (!r.ok) throw new Error("catalog unavailable");
+  S.data = await r.json();
+  booted = true;
+  renderEpochs();
+  renderDevices();
+  renderSpaces();
+  renderToggles();
+  renderCompression();
+  renderStrengthQuick();
+  renderSpacesQuick();
+  applyStrength(S.strength);
+  applySpaces(S.spacesStrength);
+  applyVolume(S.volume);
+  $("noNoise").checked = S.noNoise;
+}
+
+function cardHTML(m) {
+  return '<button class="card" type="button" data-id="' + esc(m.id) + '" title="' + esc(m.desc) + '">'
+       + '<span class="ce">' + esc(m.emoji) + '</span>'
+       + '<span><span class="cn">' + esc(m.name) + '</span>'
+       + '<span class="cd">' + esc(m.desc) + '</span></span></button>';
+}
+
+function renderEpochs() {
+  $("epochCards").innerHTML = (S.data.epochs || []).map(cardHTML).join("");
+  bindCards($("epochCards"), S.epochs);
+}
+
+function renderDevices() {
+  $("deviceCards").innerHTML = (S.data.devices || []).map(cardHTML).join("");
+  bindCards($("deviceCards"), S.devices);
+}
+
+function renderSpaces() {
+  $("spaceCards").innerHTML = (S.data.spaces || []).map(cardHTML).join("");
+  bindCards($("spaceCards"), S.spaces);
+}
+
+function bindCards(root, set) {
+  root.querySelectorAll(".card").forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    btn.classList.toggle("on", set.has(btn.dataset.id));
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      if (set.has(id)) set.delete(id); else set.add(id);
+      btn.classList.toggle("on", set.has(id));
+      syncChain();
+    });
+  });
+}
+
+function brickDesc() {
+  let d = "";
+  (S.data.variants || []).forEach(g => (g.pairs || []).forEach(p => {
+    if (p.a && p.a.id === "brick") d = p.a.desc || "";
+  }));
+  return d;
+}
+
+function brickTitle() {
+  return brickDesc().replace("{hz}", S.brickHz);
+}
+
+function orderedPairs() {
+  const pairs = [];
+  (S.data.variants || []).forEach(g => (g.pairs || []).forEach(p => pairs.push(p)));
+  pairs.sort((a, b) => (a.pos == null ? 99 : a.pos) - (b.pos == null ? 99 : b.pos));
+  return pairs;
+}
+
+function renderToggles() {
+  const btn = (pair, o) => {
+    const on = S.variants.has(o.id);
+    if (o.id === "brick") {
+      const title = esc(brickTitle());
+      if (on) {
+        return '<input class="opt opt-num on" type="number" inputmode="numeric"'
+          + ' data-v="brick" data-pair="' + esc(pair) + '" min="20" max="2000"'
+          + ' step="5" value="' + S.brickHz + '"'
+          + ' title="' + title + '"'
+          + ' aria-label="Brickwall corner frequency in Hz">';
+      }
+      return '<button class="opt" type="button" data-v="brick" data-pair="'
+        + esc(pair) + '" title="' + title + '">' + esc(o.name) + '</button>';
+    }
+    return '<button class="opt' + (on ? " on" : "") + '" type="button"'
+      + ' data-v="' + esc(o.id) + '" data-pair="' + esc(pair) + '"'
+      + ' title="' + esc(o.desc || o.name) + '">' + esc(o.name) + '</button>';
+  };
+  const parts = orderedPairs().map(p => {
+    const html = [p.a, p.b].filter(Boolean).map(o => btn(p.id, o)).join("");
+    return p.id === "tone" ? '<div class="tonebox">' + html + '</div>' : html;
+  });
+  $("toggles").innerHTML = parts.join("");
+
+  document.querySelectorAll("#toggles .opt").forEach(el => {
+    if (el.tagName === "INPUT") {
+      el.addEventListener("input", () => {
+        const v = parseInt(el.value, 10);
+        if (isFinite(v)) S.brickHz = Math.min(2000, Math.max(20, v));
+        el.title = brickTitle();
+      });
+      el.addEventListener("change", () => { el.value = S.brickHz; syncChain(); });
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter") el.blur();
+        if (e.key === "Escape") {
+          S.variants.delete("brick");
+          renderToggles();
+          syncChain();
+        }
+      });
+      el.addEventListener("click", e => {
+        e.stopPropagation();
+        if (document.activeElement === el) {
+          // A second click turns the wall off, keeping the typed frequency.
+          S.variants.delete("brick");
+          renderToggles();
+          syncChain();
+        } else {
+          el.focus();
+          el.select();
+        }
+      });
+      return;
+    }
+    el.addEventListener("click", () => {
+      const id = el.dataset.v;
+      const already = S.variants.has(id);
+      document.querySelectorAll("#toggles .opt[data-pair='" + esc(el.dataset.pair) + "']")
+        .forEach(o => {
+          S.variants.delete(o.dataset.v);
+          o.classList.remove("on");
+        });
+      if (!already) S.variants.add(id);
+      if (id === "brick") {
+        renderToggles();
+        if (!already) {
+          const inp = document.querySelector('#toggles input[data-v="brick"]');
+          if (inp) { inp.focus(); inp.select(); }
+        }
+      } else if (already) {
+        renderToggles();
+      } else {
+        el.classList.add("on");
+      }
+      syncChain();
+    });
+  });
+}
+
+const QUICK = [
+  {v: 0, l: "0%"}, {v: 25, l: "25%"}, {v: 50, l: "50%"},
+  {v: 75, l: "75%"}, {v: 100, l: "100%"}
+];
+
+function renderStrengthQuick() {
+  $("strengthQuick").innerHTML = QUICK.map(q =>
+    '<button class="qbtn' + (q.v === S.strength ? " on" : "") + '" type="button" data-v="' + q.v + '" title="Set effect strength to ' + q.l + '">' + q.l + '</button>'
+  ).join("");
+  $("strengthQuick").querySelectorAll(".qbtn").forEach(b => {
+    b.addEventListener("click", () => applyStrength(parseInt(b.dataset.v, 10)));
+  });
+}
+
+function applyStrength(v) {
+  S.strength = v;
+  $("strength").value = v;
+  $("strengthVal").textContent = v + "%";
+  $("strength").style.setProperty("--p", v + "%");
+  $("strengthQuick").querySelectorAll(".qbtn").forEach(b =>
+    b.classList.toggle("on", parseInt(b.dataset.v, 10) === v));
+}
+
+function renderSpacesQuick() {
+  $("spacesQuick").innerHTML = QUICK.map(q =>
+    '<button class="qbtn' + (q.v === S.spacesStrength ? " on" : "") + '" type="button" data-v="' + q.v + '" title="Set rooms &amp; spaces strength to ' + q.l + '">' + q.l + '</button>'
+  ).join("");
+  $("spacesQuick").querySelectorAll(".qbtn").forEach(b => {
+    b.addEventListener("click", () => applySpaces(parseInt(b.dataset.v, 10)));
+  });
+}
+
+function applySpaces(v) {
+  S.spacesStrength = v;
+  $("spacesStrength").value = v;
+  $("spacesVal").textContent = v + "%";
+  $("spacesStrength").style.setProperty("--p", v + "%");
+  $("spacesQuick").querySelectorAll(".qbtn").forEach(b =>
+    b.classList.toggle("on", parseInt(b.dataset.v, 10) === v));
+}
+
+function applyVolume(v) {
+  S.volume = v;
+  $("volume").value = v;
+  $("volumeVal").textContent = v + "%";
+  $("volume").style.setProperty("--p", (v / 2) + "%");
+}
+
+function renderCompression() {
+  const list = S.data.compressions || [];
+  $("compBtns").innerHTML = list.map(c =>
+    '<button class="qbtn' + (c.id === S.compression ? " on" : "") + '" type="button" data-id="' + esc(c.id)
+    + '" title="' + esc(c.desc) + '"><span class="qi">' + esc(c.emoji) + '</span>' + esc(c.name) + '</button>'
+  ).join("");
+  $("compBtns").querySelectorAll(".qbtn").forEach(b => {
+    b.addEventListener("click", () => {
+      S.compression = b.dataset.id;
+      $("compBtns").querySelectorAll(".qbtn").forEach(x =>
+        x.classList.toggle("on", x.dataset.id === S.compression));
+      syncCompHint();
+      syncChain();
+    });
+  });
+  syncCompHint();
+}
+
+function syncCompHint() {
+  const c = (S.data.compressions || []).find(x => x.id === S.compression);
+  $("compHint").textContent = c ? c.desc : "";
+}
+
+function chipHTML(set, id, label, cls) {
+  return '<span class="chip' + (cls ? " " + cls : "") + '" data-set="' + esc(set) + '" data-id="' + esc(id) + '">'
+       + esc(label)
+       + '<button class="chip-x" type="button" title="Remove" aria-label="Remove">'
+       + '<svg viewBox="0 0 10 10" width="7" height="7" aria-hidden="true">'
+       + '<path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="currentColor" '
+       + 'stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button></span>';
+}
+
+function syncChain() {
+  const parts = [];
+  $("spacesCtl").hidden = S.spaces.size === 0;
+  S.epochs.forEach(id => parts.push(chipHTML("epochs", id, nameOf("epochs", id))));
+  S.devices.forEach(id => parts.push(chipHTML("devices", id, nameOf("devices", id))));
+  S.spaces.forEach(id => parts.push(chipHTML("spaces", id, nameOf("spaces", id))));
+
+  // The Brick wall is applied last, so it is shown last in the chain.
+  let brickChip = null;
+  orderedPairs().forEach(p => {
+    let o = null;
+    if (S.variants.has(p.a.id)) o = p.a;
+    else if (p.b && S.variants.has(p.b.id)) o = p.b;
+    if (!o) return;
+    const label = p.b ? p.name + ": " + o.name : o.name;
+    if (o.id === "brick") brickChip = chipHTML("variants", o.id, label);
+    else parts.push(chipHTML("variants", o.id, label));
+  });
+
+  const c = (S.data.compressions || []).find(x => x.id === S.compression);
+  if (c && c.id !== "off") {
+    parts.push(chipHTML("compression", "off", "Compression: " + c.name, "cmp"));
+  }
+  if (brickChip) parts.push(brickChip);
+
+  const el = $("chain");
+  if (!parts.length) { el.innerHTML = ""; return; }
+  el.innerHTML = parts.map((p, i) =>
+    (i ? '<span class="chip sep">→</span>' : "") + p
+  ).join("");
+}
+
+$("chain").addEventListener("click", (e) => {
+  const x = e.target.closest(".chip-x");
+  if (!x) return;
+  const chip = x.closest(".chip");
+  const set = chip.dataset.set;
+  const id = chip.dataset.id;
+  if (set === "epochs") S.epochs.delete(id);
+  else if (set === "devices") S.devices.delete(id);
+  else if (set === "spaces") S.spaces.delete(id);
+  else if (set === "variants") S.variants.delete(id);
+  else if (set === "compression") S.compression = "off";
+  renderToggles();
+  renderCompression();
+  $("epochCards").querySelectorAll(".card").forEach(b => b.classList.toggle("on", S.epochs.has(b.dataset.id)));
+  $("deviceCards").querySelectorAll(".card").forEach(b => b.classList.toggle("on", S.devices.has(b.dataset.id)));
+  $("spaceCards").querySelectorAll(".card").forEach(b => b.classList.toggle("on", S.spaces.has(b.dataset.id)));
+  syncChain();
+});
+function nameOf(kind, id) {
+  const m = (S.data[kind] || []).find(x => x.id === id);
+  return m ? m.name : id;
+}
+
+const drop = $("drop");
+const fileInput = $("file");
+
+$("pick").addEventListener("click", (e) => { e.stopPropagation(); fileInput.click(); });
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+});
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) upload(fileInput.files[0]); });
+
+["dragenter", "dragover"].forEach(ev => {
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("hot"); });
+  document.addEventListener(ev, e => e.preventDefault());
+});
+["dragleave", "drop"].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("hot"); }));
+drop.addEventListener("drop", e => {
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f) upload(f);
+});
+document.addEventListener("drop", e => {
+  if (e.target === drop) return;
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f && f.type.indexOf("audio") === 0) upload(f);
+});
+
+function fmtTime(sec) {
+  sec = Math.round(sec);
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ":" + String(s).padStart(2, "0");
+}
+
+function showTrack(t) {
+  $("dropTxt").textContent = t.name || "audio";
+  $("dropTxt").classList.add("loaded");
+  $("srcMeta").textContent = t.meta || "";
+  $("srcTrack").hidden = false;
+  $("srcPlayer").src = t.url;
+  $("srcPlayer").load();
+}
+
+async function upload(file) {
+  status("Uploading <b>" + esc(file.name) + "</b>…", "work");
+  try {
+    const r = await fetch("/api/upload", {
+      method: "POST",
+      headers: {"X-Filename": encodeURIComponent(file.name)},
+      body: file
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "upload failed");
+    S.uid = j.id;
+    S.origUrl = j.url;
+    S.track = {
+      uid: j.id,
+      url: j.url,
+      name: j.name,
+      meta: fmtTime(j.duration) + " · "
+          + (j.channels > 1 ? "stereo" : "mono") + " · "
+          + Math.round(j.sr / 1000) + " kHz"
+    };
+    showTrack(S.track);
+    status("Track ready. Pick an era and a device.", "ok");
+  } catch (e) {
+    status("Error: " + esc(e.message), "err");
+  }
+}
+
+function clearTrack() {
+  S.track = null;
+  S.uid = null;
+  S.origUrl = null;
+  $("srcTrack").hidden = true;
+  $("srcPlayer").removeAttribute("src");
+  $("srcPlayer").load();
+  $("dropTxt").textContent = "Drop an audio file here";
+  $("dropTxt").classList.remove("loaded");
+  $("srcMeta").textContent = "";
+}
+
+function collect() {
+  return {
+    id: S.uid,
+    epochs: Array.from(S.epochs),
+    devices: Array.from(S.devices),
+    spaces: Array.from(S.spaces),
+    variants: Array.from(S.variants),
+    brick_hz: S.brickHz,
+    strength: S.strength / 100,
+    spaces_strength: S.spacesStrength / 100,
+    compression: S.compression,
+    volume: S.volume / 100,
+    no_noise: S.noNoise
+  };
+}
+
+$("go").addEventListener("click", async () => {
+  if (S.busy) return;
+  if (!S.uid) { status("Upload an audio file first", "err"); return; }
+  const req = collect();
+  const hasEffect = req.epochs.length || req.devices.length
+    || req.spaces.length || req.variants.length
+    || req.compression !== "off" || req.no_noise;
+  if (!hasEffect) {
+    status("Pick an era, device, space, character option, a compression level or enable noise removal","err");
+    return;
+  }
+  S.busy = true;
+  $("go").disabled = true;
+  status('<span class="spin"></span>Building the chain and processing…', "work");
+  try {
+    const r = await fetch("/api/process", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(req)
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "processing failed");
+    const res = j.result;
+    $("player").src = res.url;
+    $("player").load();
+    $("dl").href = res.download;
+    $("dl").hidden = false;
+    $("resMeta").textContent = res.format.toUpperCase() + " · " + fmtTime(res.duration)
+      + " · " + res.steps.length + " steps";
+    syncChain();
+    status("Done: " + esc(res.label), "ok");
+    try { $("player").play(); } catch (e) {}
+  } catch (e) {
+    status("Error: " + esc(e.message), "err");
+  } finally {
+    S.busy = false;
+    $("go").disabled = false;
+  }
+});
+
+$("srcPlayer").addEventListener("error", () => {
+  if ($("srcPlayer").getAttribute("src")) {
+    clearTrack();
+    status("Original recording is gone — the app keeps it only in memory while running. Upload again.", "err");
+  }
+});
+
+$("player").addEventListener("error", () => {
+  if (!$("player").getAttribute("src")) return;
+  status("Result is gone — the app keeps files only in memory while running. Apply again.", "err");
+});
+
+// Solo playback: pressing play anywhere stops every other player on the page.
+document.addEventListener("play", (e) => {
+  const t = e.target;
+  if (!t || t.tagName !== "AUDIO") return;
+  document.querySelectorAll("audio").forEach(a => {
+    if (a !== t && !a.paused) a.pause();
+  });
+}, true);
+
+$("noNoise").addEventListener("change", () => {
+  S.noNoise = $("noNoise").checked;
+});
+$("strength").addEventListener("input", e => applyStrength(parseInt(e.target.value, 10)));
+$("spacesStrength").addEventListener("input", e => applySpaces(parseInt(e.target.value, 10)));
+$("volume").addEventListener("input", e => applyVolume(parseInt(e.target.value, 10)));
+
+const pinPanel = document.querySelector(".sec.sticky");
+function syncPin() {
+  if (!pinPanel) return;
+  const vh = window.innerHeight;
+  const h = pinPanel.offsetHeight;
+  pinPanel.style.top = Math.min(14, vh - h - 14) + "px";
+}
+window.addEventListener("resize", syncPin);
+if (pinPanel && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(syncPin).observe(pinPanel);
+}
+
+function xmlEsc(s) {
+  return String(s).replace(/[<>&'"]/g, c =>
+    ({"<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;"}[c]));
+}
+
+function presetXml() {
+  const list = (tag, set) =>
+    "  <" + tag + ">" + Array.from(set).map(id => "<id>" + xmlEsc(id) + "</id>").join("")
+    + "</" + tag + ">\n";
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<vintagefx version="1">\n'
+    + list("epochs", S.epochs)
+    + list("devices", S.devices)
+    + list("spaces", S.spaces)
+    + list("variants", S.variants)
+    + "  <strength>" + S.strength + "</strength>\n"
+    + "  <spaces_strength>" + S.spacesStrength + "</spaces_strength>\n"
+    + "  <brick_hz>" + S.brickHz + "</brick_hz>\n"
+    + "  <compression>" + xmlEsc(S.compression) + "</compression>\n"
+    + "  <no_noise>" + (S.noNoise ? "true" : "false") + "</no_noise>\n"
+    + "  <volume>" + S.volume + "</volume>\n"
+    + "</vintagefx>\n";
+}
+
+function applyPresetXml(text) {
+  const doc = new DOMParser().parseFromString(text, "application/xml");
+  if (doc.querySelector("parsererror")) throw new Error("not valid XML");
+  const known = kind => new Set((S.data[kind] || []).map(x => x.id));
+  const readIds = (tag, kind) => {
+    const el = doc.querySelector(tag);
+    const ids = el ? Array.from(el.querySelectorAll("id")).map(n => n.textContent.trim()) : [];
+    const ok = known(kind);
+    return ids.filter(id => ok.has(id));
+  };
+  const num = (tag, def, lo, hi) => {
+    const el = doc.querySelector(tag);
+    const v = el ? parseFloat(el.textContent) : NaN;
+    return isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : def;
+  };
+  const optIds = new Set();
+  (S.data.variants || []).forEach(g => (g.pairs || []).forEach(p => {
+    optIds.add(p.a.id);
+    if (p.b) optIds.add(p.b.id);
+  }));
+  const vEl = doc.querySelector("variants");
+  const variants = (vEl ? Array.from(vEl.querySelectorAll("id")).map(n => n.textContent.trim()) : [])
+    .filter(id => optIds.has(id));
+  const compIds = new Set((S.data.compressions || []).map(c => c.id));
+  const compEl = doc.querySelector("compression");
+  const comp = compEl ? compEl.textContent.trim() : "off";
+  const nn = doc.querySelector("no_noise");
+
+  S.epochs = new Set(readIds("epochs", "epochs"));
+  S.devices = new Set(readIds("devices", "devices"));
+  S.spaces = new Set(readIds("spaces", "spaces"));
+  S.variants = new Set(variants);
+  S.strength = num("strength", 100, 0, 100);
+  S.spacesStrength = num("spaces_strength", 100, 0, 100);
+  S.brickHz = num("brick_hz", 90, 20, 2000);
+  S.compression = compIds.has(comp) ? comp : "off";
+  S.noNoise = nn ? nn.textContent.trim() === "true" : false;
+  S.volume = num("volume", 100, 0, 200);
+  syncUIFromState();
+}
+
+function syncUIFromState() {
+  $("epochCards").querySelectorAll(".card").forEach(b =>
+    b.classList.toggle("on", S.epochs.has(b.dataset.id)));
+  $("deviceCards").querySelectorAll(".card").forEach(b =>
+    b.classList.toggle("on", S.devices.has(b.dataset.id)));
+  $("spaceCards").querySelectorAll(".card").forEach(b =>
+    b.classList.toggle("on", S.spaces.has(b.dataset.id)));
+  renderToggles();
+  renderCompression();
+  applyStrength(S.strength);
+  applySpaces(S.spacesStrength);
+  applyVolume(S.volume);
+  $("noNoise").checked = S.noNoise;
+  syncChain();
+}
+
+function savePreset() {
+  const blob = new Blob([presetXml()], {type: "application/xml"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "vintagefx-preset.xml";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  status("Preset saved to vintagefx-preset.xml", "ok");
+}
+
+$("presetSave").addEventListener("click", savePreset);
+$("presetOpen").addEventListener("click", () => $("presetFile").click());
+$("presetFile").addEventListener("change", () => {
+  const f = $("presetFile").files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyPresetXml(String(reader.result));
+      status("Preset loaded from " + esc(f.name), "ok");
+    } catch (e) {
+      status("Could not read the preset: " + esc(e.message), "err");
+    }
+  };
+  reader.onerror = () => status("Could not read the file", "err");
+  reader.readAsText(f);
+  $("presetFile").value = "";
+});
+
+applyStrength(S.strength);
+applySpaces(S.spacesStrength);
+applyVolume(S.volume);
+syncPin();
+loadPresets()
+  .then(() => {
+    syncChain();
+    syncPin();
+    status("Upload a track and pick an era.", "");
+  })
+  .catch(e => status("Could not load the effect catalog: " + esc(e.message), "err"));
+</script>
+</body>
+</html>
